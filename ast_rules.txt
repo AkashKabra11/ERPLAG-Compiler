@@ -1,0 +1,382 @@
+*******************************************************************************************************************
+GROUP 47: 
+2016B3A70523P : Ayush Mungad
+2016B3A70562P : Akash Kabra
+2016B4A70520P : Kumar Anant Raj
+2016B4A70533P : Mustansir Mohammed Mama
+2016B5A70715P : Bhavesh Chand 
+
+Instructions:  
+
+We have planned to make an AST node structure as follows: 
+
+struct ASTNode{
+    ParseTreeNode node;
+    struct ASTNode* syn; 
+    struct ASTNode* inh; 
+}
+
+We are using the following methods: 
+makenode : 
+Takes input as a variable-sized list of ASTNode* and returns a composite ASTNode* pointer
+
+makeleafnode: 
+Takes input as a ParseTreeNode and copies the contents of the ParseTreeNode into an ASTNode and syn and inh are initialized as NULL
+
+makeoffsetnode: 
+In accessing array element we need to do ((Address from SymTable) + (sizeof(variable)*index1)). Access to single 
+variable is handled by setting index1 = 0. makeoffsetnode function is used to create a NUM node with 0 in the value
+field.
+
+Whenever we use ID.node, we are basically referring to the ParseTreeNode w.r.t. that ID.
+*******************************************************************************************************************
+
+program -> moduleDeclarations otherModules1 driverModule otherModules2                  
+program.syn = makenode(moduleDeclarations.syn,otherModules1.syn,driverModule.syn,otherModules2.syn)
+
+--moduleDeclarations_parent -> moduleDeclaration moduleDeclarations_child                    
+moduleDeclarations_parent.syn = appendLL(moduleDeclaration.syn,moduleDeclarations_child.syn)
+
+moduleDeclarations -> EPS                                                                  
+moduleDeclarations.syn = NULL
+
+moduleDeclaration -> DECLARE MODULE ID SEMICOL                                             
+moduleDeclaration.syn = makeleafnode(ID.node)
+
+--otherModules_parent -> module otherModules_child                                           
+otherModules_parent.syn = makenode(module.syn,otherModules_child.syn)
+
+otherModules -> EPS                                                                        
+otherModules.syn = NULL
+
+driverModule -> DRIVERDEF DRIVER PROGRAM DRIVERENDDEF moduleDef
+driverModule.syn = moduleDef.syn
+free(moduleDef)
+
+module -> DEF MODULE ID ENDDEF TAKES INPUT SQBO input_plist SQBC SEMICOL ret moduleDef
+module.syn = makenode(makeleafnode(ID.node),input_plist.syn,ret.syn,moduleDef.syn)
+
+ret -> RETURNS SQBO output_plist SQBC SEMICOL
+ret.syn = output_plist.syn
+free(output_plist)
+
+ret -> EPS
+ret.syn = NULL
+
+--input_plist -> ID COLON dataType N1
+input_plist.syn = makenode( makeleafnode(ID.node), dataType.syn, N1.syn)
+
+--N1_parent -> COMMA ID COLON dataType N1_child
+N1_parent.syn = makenode( makeleafnode(ID.node), dataType.syn, N1_child.syn)
+
+N1 -> EPS
+N1.syn = NULL
+
+--output_plist -> ID COLON type N2               
+output_plist.syn = makenode( makeleafnode(ID.node),type.syn,N2.syn)    
+
+--N2_parent -> COMMA ID COLON type N2_child
+N2_parent.syn = makenode( makeleafnode(ID.node),type.syn,N2_child.syn)
+
+N2 -> EPS
+N2.syn = NULL
+
+dataType -> ARRAY SQBO range_arrays SQBC OF type       
+dataType.syn = makenode(range_arrays.syn,type.syn)
+
+dataType -> INTEGER
+dataType.syn = makeleafnode(INTEGER.node)
+
+dataType -> REAL
+dataType.syn = makeleafnode(REAL.node)
+
+dataType -> BOOLEAN
+dataType.syn = makeleafnode(BOOLEAN.node)
+
+range_arrays -> index1_left RANGEOP index1_right          
+range_arrays.syn = makenode(index1_left.syn,index1_right.syn)
+
+type -> INTEGER
+type.syn = makeleafnode(INTEGER.node)
+
+type -> REAL
+type.syn = makeleafnode(REAL.node)
+
+type -> BOOLEAN
+type.syn = makeleafnode(BOOLEAN.node)
+
+moduleDef -> START statements END              
+moduleDef.syn = statements.syn
+free(statements)
+
+--statements_parent -> statement statements_child             
+statements_parent.syn = makenode(statement.syn,statements_child.syn)
+
+statements -> EPS                              
+statements.syn = NULL
+
+statement -> ioStmt                            
+statement.syn = ioStmt.syn
+free(ioStmt)
+
+statement -> simpleStmt
+statement.syn = simpleStmt.syn
+free(simpleStmt)
+
+statement -> declareStmt
+statement.syn = declareStmt.syn
+free(declareStmt)
+
+statement -> condionalStmt
+statement.syn = conditionalStmt.syn
+free(conditionalStmt)
+
+statement -> iterativeStmt                     
+statement.syn = iterativeStmt.syn
+free(iterativeStmt)
+
+ioStmt -> GET_VALUE BO ID BC SEMICOL           
+ioStmt.syn = makenode(makeleafnode(GET_VALUE.node),makeleafnode(ID.node))
+
+ioStmt -> PRINT BO var BC SEMICOL    
+ioStmt.syn = makenode(makeleafnode(PRINT.node),var.syn)          
+
+boolConstt -> TRUE                             
+boolConstt.syn = makeleafnode(TRUE.node)
+
+boolConstt -> FALSE                            
+boolConstt.syn = makeleafnode(FALSE.node)
+
+var_id_num -> ID whichId                       
+var_id_num.syn = makenode(makeleafnode(ID.node),whichID.syn)
+
+var_id_num -> NUM                              
+var_id_num.syn = makeleafnode(NUM.node)
+
+var_id_num -> RNUM                             
+var_id_num.syn = makeleafnode(RNUM.node)
+
+var -> var_id_num                              
+var.syn = var_id_num.syn      
+free(var_id_num)
+
+var -> boolConstt                              
+var.syn = boolConstt.syn      
+free(boolConstt)
+
+whichId -> SQBO index1 SQBC                    
+whichId.syn = index1.syn      
+free(index1)
+
+whichId -> EPS                                 
+whichID.syn = NULL
+
+simpleStmt -> assignmentStmt                   
+simpleStmt.syn = assignmentStmt.syn        
+free(assignmentStmt)
+
+simpleStmt -> moduleReuseStmt                  
+simpleStmt.syn = moduleReuseStmt.syn       
+free(moduleReuseStmt)
+
+assignmentStmt -> ID whichStmt                 
+assignmentStmt.syn = makenode(makeleafnode(ASSIGNOP.node),ID.lexeme,whichStmt.syn)
+
+whichStmt -> lvalueIDStmt                      
+whichStmt.syn = lvalueIDStmt.syn     
+free(lvalueIDStmt)
+
+whichStmt -> lvalueARRStmt                        
+whichStmt.syn = lvalueARRStmt.syn     
+free(lvalueARRStmt)
+
+lvalueIDStmt -> ASSIGNOP expression SEMICOL                    
+lvalueIDStmt.syn = makenode(makeoffsetnode(0),expression.syn))       
+
+lvalueARRStmt -> SQBO index1 SQBC ASSIGNOP expression SEMICOL          
+lvalueARRStmt.syn = makenode(index1.syn,expression.syn)
+
+index1 -> NUM                  
+index1.syn = makeleafnode(NUM.node)
+
+index1 -> ID                   
+index1.syn = makeleafnode(ID.node)
+
+moduleReuseStmt -> optional USE MODULE ID WITH PARAMETERS idList SEMICOL       
+moduleReuseStmt.syn = makenode(makeleafnode(USE.node),optional.syn,ID.lexeme,idList.syn)
+
+optional -> SQBO idList SQBC ASSIGNOP         
+optional.syn = idList.syn  
+free(idList)
+
+optional -> EPS                               
+optional.syn = NULL
+
+--idList -> ID N3                  
+idList.syn = makenode(makeleafnode(ID.node),N3.syn)
+
+--N3_parent -> COMMA ID N3_child                  
+N3_parent.syn = makenode(makeleafnode(ID.node),N3_child.syn)
+
+N3 -> EPS           
+N3.syn = NULL
+
+expression -> arithmeticOrBooleanExpr      
+expression.syn = arithmeticOrBooleanExpr.syn    
+free(arithmeticOrBooleanExpr)
+
+expression -> U                        
+expression.syn = U.syn             
+free(U)
+
+U -> unary_op new_NT                   
+U.syn = makenode(unary_op.syn,new_NT.syn)
+
+new_NT -> BO arithmeticExpr BC         
+new_NT.syn = arithmeticExpr.syn         
+free(arithmeticExpr)
+
+new_NT -> var_id_num                   
+new_NT.syn = var_id_num.syn             
+free(var_id_num)
+
+unary_op -> PLUS                       
+unary_op.syn = makeleafnode(PLUS.node)
+
+unary_op -> MINUS                      
+unary_op.syn = makeleafnode(MINUS.node)
+
+arithmeticOrBooleanExpr -> AnyTerm N7            
+N7.inh = AnyTerm.syn                    
+arithmeticOrBooleanExpr.syn = N7.syn
+free(AnyTerm)
+
+N7_parent -> logicalOp AnyTerm N7_child            
+N7_child.inh = makenode(logicalOp.syn,N7_parent.inh,AnyTerm.syn)      
+N7_parent.syn = N7_child.syn
+
+N7 -> EPS                  
+N7.syn = N7.inh 
+
+AnyTerm -> arithmeticExpr N8       
+N8.inh = arithmeticExpr.syn
+AnyTerm.syn = N8.syn  
+free(arithmeticExpr)  
+
+AnyTerm -> boolConstt                  
+AnyTerm.syn = boolConstt.syn
+free(boolConstt)
+
+N8 -> relationalOp arithmeticExpr      
+N8.syn = makenode(relationalOp.syn,N8.inh,arithmeticExpr.syn)
+
+N8 -> EPS                              
+N8.syn = N8.inh
+
+arithmeticExpr -> term N4          
+N4.inh = term.syn     
+free(term)
+arithmeticExpr.syn = N4.syn
+
+N4_parent -> op1 term N4_child      
+N4_child.inh = makenode(op1.syn,N4_parent.inh,term.syn)      
+N4_parent.syn=N4_child.syn       
+
+N4 -> EPS                  
+N4.syn = N4.inh
+
+term -> factor N5          
+N5.inh = factor.syn     
+free(factor)
+term.syn = N5.syn
+
+N5_parent -> op2 factor N5_child     
+N5_child.inh = makenode(op2.syn,N5_parent.inh,factor.syn)
+N5_parent.syn = N5_child.syn
+
+N5 -> EPS                     
+N5.syn = N5.inh           
+
+factor -> BO arithmeticOrBooleanExpr BC     
+factor.syn = arithmeticOrBooleanExpr.syn   
+free(arithmeticOrBooleanExpr)
+
+factor -> var_id_num                         
+factor.syn = var_id_num.syn  
+free(var_id_num)
+
+op1 -> PLUS                                  
+op1.syn = makeleafnode(PLUS.node)
+
+op1 -> MINUS                                 
+op1.syn = makeleafnode(MINUS.node)
+
+op2 -> MUL                                   
+op2.syn = makeleafnode(MUL.node)     
+
+op2 -> DIV                                   
+op2.syn = makeleafnode(DIV.node)
+
+logicalOp -> AND                             
+logicalOp.syn = makeleafnode(AND.node)
+
+logicalOp -> OR                              
+logicalOp.syn = makeleafnode(OR.node)
+
+relationalOp -> LT                           
+relationop.syn = makeleafnode(LT.node)
+
+relationalOp -> LE                           
+relationop.syn = makeleafnode(LE.node)
+
+relationalOp -> GT                           
+relationop.syn = makeleafnode(GT.node)
+
+relationalOp -> GE                           
+relationop.syn = makeleafnode(GE.node)
+
+relationalOp -> EQ                           
+relationop.syn = makeleafnode(EQ.node)
+
+relationalOp -> NE                           
+relationop.syn = makeleafnode(NE.node)
+
+declareStmt -> DECLARE idList COLON dataType SEMICOL           
+declareStmt.syn = makenode(makeleafnode(DECLARE.node),idList.syn,dataType.syn)
+
+condionalStmt -> SWITCH BO ID BC START caseStmts default1 END  
+condionalStmt.syn = makenode(makeleafnode(SWITCH.node),makeleafnode(ID.node),caseStmts.syn,default1.syn)
+
+caseStmts -> CASE value COLON statements BREAK SEMICOL N9      
+caseStmts.syn = makenode(value.syn,statements.syn,N9.syn)
+
+N9_parent -> CASE value COLON statements BREAK SEMICOL N9_child       
+N9_parent.syn = makenode(value.syn,statements.syn,N9_child.syn)
+
+N9 -> EPS                          
+N9.syn = NULL
+
+value -> NUM                       
+value.syn = makeleafnode(NUM.node)
+
+value -> TRUE                      
+value.syn = makeleafnode(TRUE.node)
+
+value -> FALSE                     
+value.syn = makeleafnode(FALSE.node)
+
+default1 -> DEFAULT COLON statements BREAK SEMICOL                
+default1.syn = statements.syn
+free(statements)
+
+default1 -> EPS                
+default1.syn = NULL
+
+iterativeStmt -> FOR BO ID IN range BC START statements END            
+itstmt.syn = makenode(makeleafnode(FOR.node),range.syn, statements.syn)
+
+iterativeStmt -> WHILE BO arithmeticOrBooleanExpr BC START statements END      
+itstmt.syn = makenode(makeleafnode(WHILE.node),arithmeticOrBooleanExpr.syn, statements.syn)
+
+range -> NUM_left RANGEOP NUM_right                   
+range.syn = makenode(makeleafnode(NUM_left.node), makeleafnode(NUM_right.node))
